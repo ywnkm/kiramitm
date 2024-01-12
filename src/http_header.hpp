@@ -1,0 +1,52 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <string_view>
+
+
+namespace krkr {
+
+    class http_headers {
+    public:
+        explicit http_headers(std::vector<std::pair<std::string, std::string>> &values);
+        http_headers();
+        http_headers(const http_headers &) = delete;
+        http_headers &operator=(const http_headers &) = delete;
+
+        [[nodiscard]]
+        http_headers copy() const;
+
+        void add(const std::string &key, const std::string &value);
+
+        void set(const std::string &key, const std::string &value);
+
+        bool remove(const std::string &key);
+
+        [[nodiscard]]
+        auto begin() const {
+            return this->_values.begin();
+        }
+
+        [[nodiscard]]
+        auto end() const {
+            return this->_values.end();
+        }
+
+        [[nodiscard]]
+        size_t size() const {
+            return this->_values.size();
+        }
+
+    private:
+
+        std::vector<std::pair<std::string, std::string>> _values;
+    };
+
+    std::ostream &operator<<(std::ostream &os, const http_headers &headers);
+
+    http_headers parseHttpHeaders(std::string_view str);
+
+}
