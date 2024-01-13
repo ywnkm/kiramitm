@@ -2,6 +2,7 @@
 #include <iostream>
 #include "utils.hpp"
 #include "http_header.hpp"
+#include "http_message.hpp"
 #include <spdlog/spdlog.h>
 
 using asio::ip::tcp;
@@ -58,7 +59,7 @@ namespace krkr {
                 }
 
                 asio::co_spawn(executor, [socket, proxySocket]() -> asio::awaitable<void> {
-                    auto buffer = std::array<u_char, 1024> {};
+                    auto buffer = std::array<char, 1024> {};
                     while (true) {
                         auto len = co_await socket->async_read_some(asio::buffer(buffer), asio::use_awaitable);
                         co_await proxySocket->async_write_some(asio::buffer(buffer, len), asio::use_awaitable);
@@ -66,7 +67,7 @@ namespace krkr {
                 }, asio::detached);
 
                 asio::co_spawn(executor, [socket, proxySocket]() -> asio::awaitable<void> {
-                    auto buffer = std::array<u_char, 1024> {};
+                    auto buffer = std::array<char, 1024> {};
                     while (true) {
                         auto len = co_await proxySocket->async_read_some(asio::buffer(buffer), asio::use_awaitable);
                         co_await socket->async_write_some(asio::buffer(buffer, len), asio::use_awaitable);
@@ -109,12 +110,13 @@ namespace krkr {
 
     asio::awaitable<void> https_session::start() {
         co_await this->hand_shake();
-        auto buffer = std::array<u_char, 4096>{};
-        auto len = co_await this->_socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
-        spdlog::info("Rec: {}", std::string((char *)buffer.data(), len));
-        const char *data = "HTTP/1.1 200\r\n\r\n";
-        co_await this->_socket.async_write_some(asio::buffer(data, strlen(data)), asio::use_awaitable);
-        co_await this->_socket.async_shutdown(asio::use_awaitable);
+        co_await parse_http_from_socket<http_request>(this->_socket);
+        // auto buffer = std::array<char, 4096>{};
+        // auto len = co_await this->_socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+        // spdlog::info("Rec: {}", std::string(buffer.data(), len));
+        // const char *data = "HTTP/1.1 200\r\n\r\n";
+        // co_await this->_socket.async_write_some(asio::buffer(data, strlen(data)), asio::use_awaitable);
+        // co_await this->_socket.async_shutdown(asio::use_awaitable);
     }
 
     asio::awaitable<void> https_session::hand_shake() {

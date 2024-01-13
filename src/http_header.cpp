@@ -1,13 +1,19 @@
 
 #include "http_header.hpp"
 #include <iostream>
+#include <strings.h>
 
 namespace krkr {
 
-    http_headers::http_headers(std::vector<std::pair<std::string, std::string>> &values) : _values(values) {}
+    http_headers::http_headers(const std::vector<std::pair<std::string, std::string>> &values) : _values(values) {}
 
     http_headers::http_headers() {
         this->_values = std::vector<std::pair<std::string, std::string>>();
+    }
+
+    http_headers::http_headers(const http_headers& other) = default;
+
+    http_headers::http_headers(http_headers&& other) noexcept : _values(std::move(other._values)) {
     }
 
     http_headers http_headers::copy() const {
@@ -20,8 +26,8 @@ namespace krkr {
     }
 
     void http_headers::set(const std::string &key, const std::string &value) {
-        auto it = std::find_if(this->_values.begin(), this->_values.end(), [&](const auto &item) {
-            return key == item.first;
+        auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
+            return strcasecmp(key.c_str(), item.first.c_str()) == 0;
         });
         if (it != this->_values.end()) {
             it->second = value;
@@ -30,10 +36,27 @@ namespace krkr {
         }
     }
 
-    bool http_headers::remove(const std::string &key) {
-        auto newEnd = std::remove_if(_values.begin(), _values.end(), [&](const auto &element) {
-             return element.first == key;
+    std::optional<std::string> http_headers::get(const std::string& key) const {
+        auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
+            return strcasecmp(key.c_str(), item.first.c_str()) == 0;
         });
+        if (it != this->_values.end()) {
+            return it->second;
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    std::optional<std::string> http_headers::operator[](const std::string &key) const {
+        return this->get(key);
+    }
+
+
+
+    bool http_headers::remove(const std::string &key) {
+        auto newEnd = std::ranges::remove_if(_values, [&](const auto &element) {
+            return element.first == key;
+        }).begin();
         bool removed = (newEnd != _values.end());
         _values.erase(newEnd, _values.end());
         return removed;
@@ -41,8 +64,8 @@ namespace krkr {
 
     std::ostream &operator<<(std::ostream &os, const http_headers &headers) {
         os << "Headers: " << headers.size() << "\n";
-        for (const auto &item : headers) {
-            os << item.first << ": " << item.second << "\r\n";
+        for (const auto &[fst, snd] : headers) {
+            os << fst << ": " << snd << "\r\n";
         }
 
         return os;

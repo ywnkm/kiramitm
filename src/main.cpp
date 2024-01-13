@@ -36,6 +36,6 @@ int main() {
         context.run();
 
     } catch (std::exception &e) {
-        std::cerr << "Main err " << e.what() << std::endl;
+        spdlog::error("Main err: {}", e.what());
     }
 }

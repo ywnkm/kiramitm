@@ -23,14 +23,14 @@ namespace krkr {
         template<http_stream Socket>
         class base_http_session {
         public:
-            explicit base_http_session(std::shared_ptr<Socket> socket): _socket(socket) {
+            explicit base_http_session(std::shared_ptr<Socket> socket): _socket(socket), _bh_data(nullptr) {
 
             }
 
             base_http_session(const base_http_session &) = delete;
             base_http_session &operator=(const base_http_session &) = delete;
 
-            base_http_session(base_http_session &&other) noexcept : _socket(std::move((other._socket))) {
+            base_http_session(base_http_session &&other) noexcept : _socket(std::move((other._socket))), _bh_data(std::move(other._bh_data)) {
                 other._socket = nullptr;
             }
 
@@ -46,29 +46,25 @@ namespace krkr {
                 co_return co_await this->_socket->async_write_some(buffers, asio::use_awaitable);
             }
 
+            void before_handshake(const char *data, size_t len) {
+                this->_bh_data = std::make_unique<char[]>(len);
+                memcpy(this->_bh_data.get(), data, len);
+            }
+
         protected:
             std::shared_ptr<Socket> _socket;
+            std::shared_ptr<char *> _bh_data;
         };
     }
 
     class http_session : public detail::base_http_session<asio::ip::tcp::socket > {
 
-        asio::awaitable<void> foo() {
-
-
-            auto arr = std::array<char, 30>{};
-            auto buffers = asio::buffer(arr);
-            auto b = co_await (*_socket).async_read_some(buffers, asio::use_awaitable);
-            auto so = asio::ip::tcp::socket(co_await asio::this_coro::executor);
-            auto a = this->read(buffers);
-            co_await so.async_read_some(buffers, asio::use_awaitable);
-        }
 
     };
 
     class https_session {
     public:
-        https_session(const std::shared_ptr<asio::ip::tcp::socket>& socket, asio::ssl::context &context) : _socket(std::move(*socket), context) {}
+        https_session(const std::shared_ptr<asio::ip::tcp::socket> &socket, asio::ssl::context &context) : _socket(std::move(*socket), context) {}
 
         asio::awaitable<void> start();
 

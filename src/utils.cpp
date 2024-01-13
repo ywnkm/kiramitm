@@ -17,4 +17,39 @@ namespace krkr {
         }
         std::cout << std::dec << std::endl;
     }
+
+    namespace strings {
+        bool is_all_digist(std::string_view str) {
+            return std::ranges::all_of(str, [](auto c) {
+                return std::isdigit(c);
+            });
+        }
+
+        bool contains(std::string_view str1, std::string_view str2, bool ignore_case) {
+            if (ignore_case) {
+                return (str1.size() >= str2.size() &&
+                std::equal(str2.begin(), str2.end(), str1.begin(),
+                           [](auto a, auto b) { return std::tolower(a) == std::tolower(b); }));
+            } else {
+                return str1.find(str2) != std::string_view::npos;
+            }
+        }
+
+        std::vector<std::string_view> split(std::string_view str, std::string_view delimiter) {
+            auto result = std::vector<std::string_view>{};
+            size_t pos = 0;
+            while (true) {
+                auto next_pos = str.find(delimiter, pos);
+                if (next_pos == std::string_view::npos) {
+                    result.emplace_back(str.substr(pos));
+                    break;
+                } else {
+                    result.emplace_back(str.substr(pos, next_pos - pos));
+                    pos = next_pos + delimiter.size();
+                }
+            }
+            return result;
+        }
+    }
+
 }
