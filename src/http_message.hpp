@@ -50,6 +50,8 @@ namespace krkr {
 
     class http_response : public detail::base_http_message {
 
+    public:
+
     };
 
     template<typename HttpMessage, typename Socket>
@@ -88,27 +90,31 @@ namespace krkr {
         }
 
         auto header_end = strstr(buffer.data(), "\r\n\r\n");
+        auto body_bytes = packet_builder{};
 
-        if (header_end == nullptr) { [[unlikely]] // headers too long
+        if (header_end == nullptr) { [[unlikely]] // headers length > buffer length
             // TODO
+            throw std::runtime_error("TODO");
         } else {
-            auto headers_string = std::string_view(buffer.data() + index + 2, header_end - buffer.data() - index - 2);
-            while (true) {
-                auto header_line = std::string_view(headers_string.data(), headers_string.find("\r\n"));
-                auto header_splits = strings::split(header_line, ": ");
-                if (header_splits.size() < 2) { [[unlikely]]
-                    spdlog::error("Invalid http header: {}", header_line);
-                    throw std::runtime_error("Invalid http header");
+            auto headers_string = std::string_view(buffer.data() + index + 2, header_end - buffer.data() - index);
+            headers = parse_headers(headers_string);
+        }
+        auto content_length_str = headers["Content-Length"].value_or("0");
+        if (strings::is_all_digist(content_length_str)) { [[likely]]
+            auto content_length = std::stol(content_length_str);
+            if (content_length > 0) {
+                auto body_len = len - (header_end - buffer.data()) - 4;
+                if (body_len > 0) {
+                    body_bytes.put_data(buffer.data() + (header_end - buffer.data()) + 4, body_len);
                 }
-                headers.add(std::string(header_splits[0]), std::string(header_splits[1]));
-                headers_string = headers_string.substr(header_line.size() + 2);
-                if (headers_string.empty()) {
-                    break;
+                while (body_bytes.position() < content_length) {
+                    len = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+                    body_bytes.put_data(buffer.data(), len);
                 }
             }
         }
         // TODO
-        auto result = HttpMessage{headers, nullptr, 0};
+        auto result = HttpMessage{};
 
         result.http_method() = method;
         result.http_path() = path;

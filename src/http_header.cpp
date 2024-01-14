@@ -13,6 +13,11 @@ namespace krkr {
 
     http_headers::http_headers(const http_headers& other) = default;
 
+    http_headers & http_headers::operator=(http_headers &&other) noexcept {
+        this->_values = std::move(other._values);
+        return *this;
+    }
+
     http_headers::http_headers(http_headers&& other) noexcept : _values(std::move(other._values)) {
     }
 

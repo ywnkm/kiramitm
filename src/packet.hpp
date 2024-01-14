@@ -1,5 +1,6 @@
 #pragma once
 #include <bit>
+#include <memory>
 #include <string_view>
 #include <type_traits>
 #include <sys/types.h>
@@ -16,9 +17,16 @@ namespace krkr {
         [[nodiscard]]
         size_t position() const;
 
+        [[nodiscard]]
+        size_t size() const;
+
         void put_string(std::string_view str);
 
         void put_data(const void *data, size_t len);
+
+        std::unique_ptr<void> build() const;
+
+        ~packet_builder();
 
         template<typename Integer>
         requires std::is_integral_v<Integer>
@@ -30,19 +38,19 @@ namespace krkr {
             if constexpr (size == 1) {
                 *static_cast<u_int8_t *>(this->_data + this->_position) = static_cast<u_int8_t>(integer);
             } else if constexpr (size == 2) {
-                if constexpr (endian == std::endian::native) {
+                if (endian == std::endian::native) {
                     *static_cast<u_int16_t *>(this->_data + this->_position) = static_cast<u_int16_t>(integer);
                 } else {
                     *static_cast<u_int16_t *>(this->_data + this->_position) = std::byteswap(integer);
                 }
             } else if constexpr (size == 4) {
-                if constexpr (endian == std::endian::native) {
+                if (endian == std::endian::native) {
                     *static_cast<u_int32_t *>(this->_data + this->_position) = static_cast<u_int32_t>(integer);
                 } else {
                     *static_cast<u_int32_t *>(this->_data + this->_position) = std::byteswap(integer);
                 }
             } else if constexpr (size == 8) {
-                if constexpr (endian == std::endian::native) {
+                if (endian == std::endian::native) {
                     *static_cast<u_int64_t *>(this->_data + this->_position) = static_cast<u_int64_t>(integer);
                 } else {
                     *static_cast<u_int64_t *>(this->_data + this->_position) = std::byteswap(integer);
@@ -59,6 +67,7 @@ namespace krkr {
 
     private:
         void *_data;
+        size_t _size;
         size_t _capacity;
         size_t _position;
     };

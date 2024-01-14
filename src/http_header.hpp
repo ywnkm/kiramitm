@@ -16,6 +16,8 @@ namespace krkr {
         http_headers(const http_headers &);
         http_headers &operator=(const http_headers &) = delete;
 
+        http_headers &operator=(http_headers &&other) noexcept;
+
         http_headers(http_headers &&other) noexcept;
 
         [[nodiscard]]
@@ -39,7 +41,17 @@ namespace krkr {
         }
 
         [[nodiscard]]
+        auto begin() {
+            return this->_values.begin();
+        }
+
+        [[nodiscard]]
         auto end() const {
+            return this->_values.end();
+        }
+
+        [[nodiscard]]
+        auto end() {
             return this->_values.end();
         }
 
