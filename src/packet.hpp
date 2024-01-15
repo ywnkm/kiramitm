@@ -24,7 +24,8 @@ namespace krkr {
 
         void put_data(const void *data, size_t len);
 
-        std::unique_ptr<void> build() const;
+        [[nodiscard]]
+        std::unique_ptr<char[]> build() const;
 
         ~packet_builder();
 

@@ -5,6 +5,7 @@ project(kiramitm)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
 
 file(GLOB_RECURSE SRC_FILES
         "${CMAKE_SOURCE_DIR}/src/*.cpp"

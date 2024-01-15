@@ -44,6 +44,12 @@ namespace krkr {
         };
     }
 
+    template<typename T>
+    concept socket = requires(T t) {
+        { t.async_read_some(std::declval<asio::mutable_buffer>(), asio::use_awaitable) } -> std::convertible_to<asio::awaitable<size_t>>;
+        { t.async_write_some(std::declval<asio::mutable_buffer>(), asio::use_awaitable) } -> std::convertible_to<asio::awaitable<size_t>>;
+    };
+
     class http_request : public detail::base_http_message {
 
     };
@@ -54,67 +60,66 @@ namespace krkr {
 
     };
 
-    template<typename HttpMessage, typename Socket>
+    template<typename HttpMessage, socket Socket>
     requires std::is_base_of_v<detail::base_http_message, HttpMessage>
-    && (std::is_same_v<Socket, asio::ip::tcp::socket>
-        || std::is_same_v<Socket, asio::ssl::stream<asio::ip::tcp::socket>>)
     asio::awaitable<HttpMessage> parse_http_from_socket(Socket &socket) {
-        auto buffer = std::array<char, 4096>{};
-
-        bool parse_headers = true;
+        auto buffer = std::make_unique<std::array<char, 4096>>();
         auto headers = http_headers{};
-        auto len = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+        auto len = co_await socket.async_read_some(asio::buffer(*buffer), asio::use_awaitable);
         if (len == 0) co_return HttpMessage{};
         int index = -1;
-        auto *end = strstr(buffer.data(), "\r\n");
+        auto *end = strstr(buffer->data(), "\r\n");
         if (end == nullptr) { [[unlikely]]
-            spdlog::error("Invalid http request: {}", buffer.data());
+            spdlog::error("Invalid http request: {}", buffer->data());
             throw std::runtime_error("Invalid http request");
         }
-        index = end - buffer.data();
+        index = end - buffer->data();
         if (index <= 0) { [[unlikely]]
-            spdlog::error("Invalid http request: {}", buffer.data());
+            spdlog::error("Invalid http request: {}", buffer->data());
             throw std::runtime_error("Invalid http request");
         }
-        auto first_line = std::string_view(buffer.data(), index);
+        auto first_line = std::string_view(buffer->data(), index);
         auto splits = strings::split(first_line, " ");
         if (splits.size() != 3) { [[unlikely]]
-            spdlog::error("Invalid http request: {}", buffer.data());
+            spdlog::error("Invalid http request: {}", buffer->data());
             throw std::runtime_error("Invalid http request");
         }
         auto method = std::string_view(splits[0]);
         auto path = std::string_view(splits[1]);
         auto version = std::string_view(splits[2]);
         if (version != http::version::HTTP_1_1) { [[unlikely]]
-            spdlog::warn("Unsuppored http request: {}", buffer.data());
+            spdlog::warn("Unsuppored http request: {}", buffer->data());
         }
 
-        auto header_end = strstr(buffer.data(), "\r\n\r\n");
+        auto header_end = strstr(buffer->data(), "\r\n\r\n");
         auto body_bytes = packet_builder{};
 
         if (header_end == nullptr) { [[unlikely]] // headers length > buffer length
             // TODO
+            auto header_remainng = packet_builder{};
             throw std::runtime_error("TODO");
         } else {
-            auto headers_string = std::string_view(buffer.data() + index + 2, header_end - buffer.data() - index);
-            headers = parse_headers(headers_string);
+            auto headers_string = std::string_view(buffer->data() + index + 2, header_end - buffer->data() - index);
+            headers = parseHttpHeaders(headers_string);
         }
         auto content_length_str = headers["Content-Length"].value_or("0");
+        size_t content_length = 0;
         if (strings::is_all_digist(content_length_str)) { [[likely]]
-            auto content_length = std::stol(content_length_str);
+            content_length = std::stol(content_length_str);
             if (content_length > 0) {
-                auto body_len = len - (header_end - buffer.data()) - 4;
+                auto body_len = len - (header_end - buffer->data()) - 4;
                 if (body_len > 0) {
-                    body_bytes.put_data(buffer.data() + (header_end - buffer.data()) + 4, body_len);
+                    body_bytes.put_data(buffer->data() + (header_end - buffer->data()) + 4, body_len);
                 }
                 while (body_bytes.position() < content_length) {
-                    len = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
-                    body_bytes.put_data(buffer.data(), len);
+                    len = co_await socket.async_read_some(asio::buffer(*buffer), asio::use_awaitable);
+                    body_bytes.put_data(buffer->data(), len);
                 }
             }
         }
+
         // TODO
-        auto result = HttpMessage{};
+        auto result = http_request(headers, std::shared_ptr<char[]>(body_bytes.build()), content_length);
 
         result.http_method() = method;
         result.http_path() = path;

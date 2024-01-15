@@ -22,6 +22,7 @@ namespace krkr {
         if (this->_data == nullptr) {
             spdlog::error("packet_builder ctor: malloc failed");
         }
+        memset(this->_data, 0, init_len);
     }
 
     size_t packet_builder::capacity() const {
@@ -55,15 +56,15 @@ namespace krkr {
         this->_size += len;
     }
 
-    std::unique_ptr<void> packet_builder::build() const {
-        // copy this.data to unique_ptr
-        auto ptr = std::unique_ptr<void>(new char[this->_size]);
-        if (ptr == nullptr) {
-            spdlog::error("packet_builder::build: new failed");
+    std::unique_ptr<char[]> packet_builder::build() const {
+        try {
+            auto ptr = std::make_unique<char[]>(this->_size);
+            memcpy(ptr.get(), this->_data, this->_size);
+            return ptr;
+        } catch (const std::bad_alloc &e) {
+            spdlog::error("packet_builder::build: Allocation failed - {}", e.what());
             return nullptr;
         }
-        memcpy(ptr.get(), this->_data, this->_size);
-        return ptr;
     }
 
     packet_builder::~packet_builder() {
@@ -82,8 +83,12 @@ namespace krkr {
             spdlog::error("packet_builder::expand: realloc failed");
             return;
         }
+        if (new_data != this->_data && this->_data != nullptr) {
+            free(this->_data);
+        }
         this->_data = new_data;
         this->_capacity = len;
+        // memset(this->_data + this->_capacity, 0, len - this->_capacity);
     }
 }
 
