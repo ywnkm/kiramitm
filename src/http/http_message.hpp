@@ -7,8 +7,8 @@
 #include <spdlog/spdlog.h>
 #include "http_header.hpp"
 #include "http_constance.hpp"
-#include "utils.hpp"
-#include "packet.hpp"
+#include "../utils.hpp"
+#include "../packet.hpp"
 
 namespace krkr {
 
@@ -51,12 +51,14 @@ namespace krkr {
     };
 
     class http_request : public detail::base_http_message {
+    public:
+        using detail::base_http_message::base_http_message;
 
     };
 
     class http_response : public detail::base_http_message {
-
     public:
+        using detail::base_http_message::base_http_message;
 
     };
 
@@ -119,7 +121,7 @@ namespace krkr {
         }
 
         // TODO
-        auto result = http_request(headers, std::shared_ptr<char[]>(body_bytes.build()), content_length);
+        auto result = HttpMessage(headers, std::shared_ptr<char[]>(body_bytes.build()), content_length);
 
         result.http_method() = method;
         result.http_path() = path;

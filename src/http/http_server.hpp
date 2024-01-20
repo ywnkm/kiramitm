@@ -64,7 +64,7 @@ namespace krkr {
 
     class https_session {
     public:
-        https_session(const std::shared_ptr<asio::ip::tcp::socket> &socket, asio::ssl::context &context) : _socket(std::move(*socket), context) {}
+        https_session(asio::ip::tcp::socket socket, asio::ssl::context &context) : _socket(std::move(socket), context) {}
 
         asio::awaitable<void> start();
 

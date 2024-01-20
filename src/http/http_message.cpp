@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "utils.hpp"
+#include "../utils.hpp"
 
 namespace krkr {
     namespace detail {

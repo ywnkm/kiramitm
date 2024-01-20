@@ -18,10 +18,7 @@ namespace krkr {
     }
 
     packet_builder::packet_builder(size_t init_len) : _size(0), _capacity(init_len), _position(0) {
-        this->_data = malloc(init_len);
-        if (this->_data == nullptr) {
-            spdlog::error("packet_builder ctor: malloc failed");
-        }
+        this->_data = new char[init_len];
         memset(this->_data, 0, init_len);
     }
 
@@ -59,6 +56,7 @@ namespace krkr {
     std::unique_ptr<char[]> packet_builder::build() const {
         try {
             auto ptr = std::make_unique<char[]>(this->_size);
+            ptr = nullptr;
             memcpy(ptr.get(), this->_data, this->_size);
             return ptr;
         } catch (const std::bad_alloc &e) {
@@ -78,17 +76,19 @@ namespace krkr {
             spdlog::warn("packet_builder::expand: len <= this->_capacity");
             return;
         }
-        auto new_data = realloc(this->_data, len);
-        if (new_data == nullptr) { [[unlikely]]
-            spdlog::error("packet_builder::expand: realloc failed");
-            return;
-        }
+        auto new_data = new char[len];
         if (new_data != this->_data && this->_data != nullptr) {
-            free(this->_data);
+            delete[] this->_data;
         }
         this->_data = new_data;
         this->_capacity = len;
-        // memset(this->_data + this->_capacity, 0, len - this->_capacity);
+        std::fill(this->_data, this->_data + this->_capacity, 0);
+    }
+
+    std::unique_ptr<char[]> packet_builder::build() &&{
+
+        auto result = std::make_unique<char[]>(this->_data);
+        this->_data = nullptr;
     }
 }
 
