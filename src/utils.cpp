@@ -5,7 +5,7 @@
 
 namespace krkr {
 
-    asio::awaitable<void> delay(u_int64_t ms) {
+    asio::awaitable<void> delay(uint64_t ms) {
         auto executor = co_await asio::this_coro::executor;
         auto timer = asio::steady_timer(executor, std::chrono::milliseconds(ms));
         co_await timer.async_wait(asio::use_awaitable);

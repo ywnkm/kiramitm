@@ -20,8 +20,8 @@ namespace krkr {
 
             base_http_message(base_http_message &&other) noexcept;
 
-            base_http_message(const http_headers &headers, std::shared_ptr<char []> data, size_t data_len);
-            base_http_message(http_headers &&headers, std::shared_ptr<char []> data, size_t data_len);
+            base_http_message(const http_headers &headers, std::vector<uint8_t> data, size_t data_len);
+            base_http_message(http_headers &&headers, std::vector<uint8_t> data, size_t data_len);
 
             std::string &http_path();
             std::string &http_method();
@@ -29,13 +29,15 @@ namespace krkr {
 
             http_headers &headers();
 
+            const http_headers &headers() const;
+
             size_t content_length() const;
 
             bool keep_alive() const;
 
         private:
             http_headers _headers;
-            std::shared_ptr<char []> _data;
+            std::vector<uint8_t> _data;
             std::string _http_method;
             std::string _http_version;
             std::string _http_path;
@@ -96,7 +98,7 @@ namespace krkr {
         auto header_end = strstr(buffer->data(), "\r\n\r\n");
         auto body_bytes = packet_builder{};
 
-        if (header_end == nullptr) { [[unlikely]] // headers length > buffer length
+        if (header_end == nullptr) { // headers length > buffer length
             // TODO
             auto header_remainng = packet_builder{};
             throw std::runtime_error("TODO");
@@ -113,7 +115,7 @@ namespace krkr {
                 if (body_len > 0) {
                     body_bytes.put_data(buffer->data() + (header_end - buffer->data()) + 4, body_len);
                 }
-                while (body_bytes.position() < content_length) {
+                while (body_bytes.size() < content_length) {
                     len = co_await socket.async_read_some(asio::buffer(*buffer), asio::use_awaitable);
                     body_bytes.put_data(buffer->data(), len);
                 }
@@ -121,8 +123,9 @@ namespace krkr {
         }
 
         // TODO
-        auto result = HttpMessage(headers, std::shared_ptr<char[]>(body_bytes.build()), content_length);
+        // auto result = HttpMessage(headers, std::shared_ptr<char[]>(body_bytes.build()), content_length);
 
+        auto result = HttpMessage();
         result.http_method() = method;
         result.http_path() = path;
         result.http_version() = version;

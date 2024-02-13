@@ -4,11 +4,12 @@
 #include <spdlog/spdlog.h>
 
 #include "../utils.hpp"
+#include "../platform_utils.hpp"
 
 namespace krkr {
     namespace detail {
         base_http_message::base_http_message()
-            : _headers(), _data(nullptr), _http_method(), _http_version(),
+            : _headers(), _data(), _http_method(), _http_version(),
         _http_path("/"), _content_length(0), _keep_alive(-1) {
         }
 
@@ -19,12 +20,12 @@ namespace krkr {
 
         }
 
-        base_http_message::base_http_message(const http_headers& headers, std::shared_ptr<char[]> data,
+        base_http_message::base_http_message(const http_headers& headers, std::vector<uint8_t> data,
             size_t data_len) : _headers(headers), _data(std::move(data)),
         _http_method(), _http_version(http::version::HTTP_1_1), _http_path("/"), _content_length(data_len), _keep_alive(-1) {
         }
 
-        base_http_message::base_http_message(http_headers&& headers, std::shared_ptr<char[]> data, size_t data_len)
+        base_http_message::base_http_message(http_headers&& headers, std::vector<uint8_t> data, size_t data_len)
             : _headers(std::move(headers)), _data(std::move(data)),
         _http_method(), _http_version(http::version::HTTP_1_1), _http_path("/"), _content_length(0), _keep_alive(-1) {
         }
@@ -45,6 +46,10 @@ namespace krkr {
             return this->_headers;
         }
 
+        const http_headers& base_http_message::headers() const {
+            return this->_headers;
+        }
+
         size_t base_http_message::content_length() const {
             // if (this->_content_length >= 0) return this->_content_length;
             // auto value = this->_headers["Content-Length"].value_or("0");
@@ -61,7 +66,7 @@ namespace krkr {
             switch (this->_keep_alive) {
                 case -1: {
                     auto value = this->_headers["Connection"].value_or("");
-                    if (strcasecmp("keep-alive", value.c_str()) != 0) {
+                    if (krkr_strcasecmp("keep-alive", value.c_str()) != 0) {
                         this->_keep_alive = 1;
                     } else {
                         this->_keep_alive = 0;

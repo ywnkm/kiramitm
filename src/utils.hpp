@@ -4,7 +4,7 @@
 
 namespace krkr {
 
-    asio::awaitable<void> delay(u_int64_t ms);
+    asio::awaitable<void> delay(uint64_t ms);
 
     void print_hex(const char *data, size_t len);
 

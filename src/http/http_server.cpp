@@ -34,7 +34,7 @@ namespace krkr {
         auto executor = co_await asio::this_coro::executor;
         std::unique_ptr<tcp::acceptor> acceptor;
         try {
-            acceptor = std::make_unique<tcp::acceptor>(tcp::acceptor(executor, {asio::ip::tcp::v4(), port}));
+            acceptor = std::make_unique<tcp::acceptor>(tcp::acceptor(executor, {tcp::v4(), port}));
         } catch (std::exception &e) {
             spdlog::error("Create Forward Server Error");
             spdlog::error(e.what());
@@ -44,7 +44,8 @@ namespace krkr {
         while (true) {
             auto socket = std::make_shared<tcp::socket>(co_await acceptor->async_accept(asio::use_awaitable));
             spdlog::debug("accept connection");
-            asio::co_spawn(executor, [=]() -> asio::awaitable<void> {
+            asio::co_spawn(executor, [socket, httpProxyHost, httpProxyPort, httpsProxyHost, httpsProxyPort]() -> asio::awaitable<void> {
+                auto executor = co_await asio::this_coro::executor;
                 auto buffer = std::array<u_char, 4096>{};
                 auto readLen = co_await socket->async_read_some(asio::buffer(buffer), asio::use_awaitable);
                 auto proxySocket = std::make_shared<tcp::socket>(executor);
@@ -88,24 +89,30 @@ namespace krkr {
         this->_sslContext.use_private_key_file("key.pem", asio::ssl::context::pem);
     }
 
-    asio::awaitable<void> https_server::start() {
+    asio::awaitable<uint16_t> https_server::start() {
         auto executor = co_await asio::this_coro::executor;
         std::unique_ptr<tcp::acceptor> acceptor;
         try {
-            acceptor = std::make_unique<tcp::acceptor>(tcp::acceptor(executor, {asio::ip::tcp::v4(), this->_port}));
+            acceptor = std::make_unique<tcp::acceptor>(tcp::acceptor(executor, {tcp::v4(), this->_port}));
         } catch (std::exception &e) {
             spdlog::error("Create Https Server Error");
             spdlog::error(e.what());
-            co_return;
+            co_return 0;
         }
-        spdlog::info("Https http running at {}", acceptor->local_endpoint().port());
-        while (true) {
-            auto socket = co_await acceptor->async_accept(asio::use_awaitable);
-            asio::co_spawn(executor, [this, socket = std::move(socket)]() mutable -> asio::awaitable<void> {
-                auto session = https_session(std::move(socket), this->_sslContext);
-                co_await session.start();
-            }, asio::detached);
-        }
+
+        this->_port = acceptor->local_endpoint().port();
+        spdlog::info("Https http running at {}", this->_port);
+        asio::co_spawn(executor, [this, acceptor = std::move(acceptor)]() mutable -> asio::awaitable<void> {
+            auto executor = co_await asio::this_coro::executor;
+            while (true) {
+                auto socket = co_await acceptor->async_accept(asio::use_awaitable);
+                asio::co_spawn(executor, [this, socket = std::move(socket)]() mutable -> asio::awaitable<void> {
+                    auto session = https_session(std::move(socket), this->_sslContext);
+                    co_await session.start();
+                }, asio::detached);
+            }
+        }, asio::detached);
+        co_return this->_port;
     }
 
     asio::awaitable<void> https_session::start() {

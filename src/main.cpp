@@ -5,19 +5,14 @@
 
 using asio::ip::tcp;
 
-asio::awaitable<int> foo() {
-    co_return 10;
-}
-
-asio::awaitable<void> listener() {
+asio::awaitable<void> async_main() {
     auto executor = co_await asio::this_coro::executor;
-    auto acceptor = tcp::acceptor(executor, {asio::ip::tcp::v4(), 55555});
-    while (true) {
-        auto socket = co_await acceptor.async_accept(asio::use_awaitable);
-        asio::co_spawn(executor, []() -> asio::awaitable<void> {
-            co_await foo();
-        }, asio::detached);
-    }
+
+
+    auto httpsServer = krkr::https_server();
+    auto https_ports = co_await httpsServer.start();
+
+    asio::co_spawn(executor, krkr::httpForwardServer(), asio::detached);
 }
 
 int main() {
@@ -29,10 +24,7 @@ int main() {
         asio::signal_set signals(context, SIGINT, SIGTERM);
         signals.async_wait([&](auto, auto) { context.stop(); });
 
-        asio::co_spawn(context, krkr::httpForwardServer(), asio::detached);
-        auto httpsServer = krkr::https_server(8443);
-        asio::co_spawn(context, httpsServer.start(), asio::detached);
-
+        asio::co_spawn(context, async_main(), asio::detached);
         context.run();
 
     } catch (std::exception &e) {

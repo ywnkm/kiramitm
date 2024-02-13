@@ -83,7 +83,7 @@ namespace krkr {
             constexpr char GET[] = "GET";
             constexpr char POST[] = "POST";
             constexpr char PUT[] = "PUT";
-            constexpr char DELETE[] = "DELETE";
+            // constexpr char DELETE[] = "DELETE"; // msvc error C2059 ???
             constexpr char HEAD[] = "HEAD";
             constexpr char OPTIONS[] = "OPTIONS";
             constexpr char CONNECT[] = "CONNECT";

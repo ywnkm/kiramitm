@@ -18,9 +18,12 @@ find_package(OpenSSL REQUIRED)
 find_package(asio CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
+if (UNIX)
+    target_link_libraries(kiramitm PRIVATE pthread)
+endif ()
+
 target_link_libraries(kiramitm PRIVATE
         asio::asio
         spdlog::spdlog
-        pthread
         OpenSSL::SSL
 )

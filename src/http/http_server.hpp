@@ -10,9 +10,9 @@ namespace krkr {
     asio::awaitable<void> httpForwardServer(
             uint16_t port = 9002,
             uint16_t httpProxyPort = 8080,
-            const std::string& httpProxyHost = "127.0.0.1",
+            const std::string &httpProxyHost = "127.0.0.1",
             uint16_t httpsProxyPort = 8443,
-            const std::string& httpsProxyHost = "127.0.0.1"
+            const std::string &httpsProxyHost = "127.0.0.1"
     );
 
     namespace detail {
@@ -78,12 +78,12 @@ namespace krkr {
     class https_server {
 
     public:
-        explicit https_server(uint16_t port);
+        explicit https_server(uint16_t port = 0);
 
         https_server(const https_server &) = delete;
         https_server &operator=(const https_server &) = delete;
 
-        asio::awaitable<void> start();
+        asio::awaitable<uint16_t> start();
 
     private:
         asio::ssl::context _sslContext;

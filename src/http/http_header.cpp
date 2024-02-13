@@ -1,7 +1,7 @@
 
 #include "http_header.hpp"
 #include <iostream>
-#include <strings.h>
+#include "../platform_utils.hpp"
 
 namespace krkr {
 
@@ -31,8 +31,8 @@ namespace krkr {
     }
 
     void http_headers::set(const std::string &key, const std::string &value) {
-        auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
-            return strcasecmp(key.c_str(), item.first.c_str()) == 0;
+        const auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
+            return krkr_strcasecmp(key.c_str(), item.first.c_str()) == 0;
         });
         if (it != this->_values.end()) {
             it->second = value;
@@ -42,8 +42,8 @@ namespace krkr {
     }
 
     std::optional<std::string> http_headers::get(const std::string& key) const {
-        auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
-            return strcasecmp(key.c_str(), item.first.c_str()) == 0;
+        const auto it = std::ranges::find_if(this->_values, [&](const auto &item) {
+            return krkr_strcasecmp(key.c_str(), item.first.c_str()) == 0;
         });
         if (it != this->_values.end()) {
             return it->second;
