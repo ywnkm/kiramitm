@@ -1,11 +1,8 @@
 #pragma once
 
-namespace krkr {
+namespace kmp::http {
 
-    namespace http {
-
-
-        enum class status : int {
+enum class status : int {
 
             // 1xx
             Continue = 100,
@@ -101,6 +98,4 @@ namespace krkr {
 
         constexpr char ConnectionEstablished11[] = "HTTP/1.1 200 Connection established\r\n\r\n";
 
-    } // namespace http
-
-} // namespace krkr
+} // namespace kmp::http

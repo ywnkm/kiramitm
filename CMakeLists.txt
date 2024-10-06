@@ -1,29 +1,31 @@
 cmake_minimum_required(VERSION "3.27")
 
-
 project(kiramitm)
+set(CMAKE_CXX_STANDARD 26)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
+#file(GLOB_RECURSE SRC_FILES
+#        "${CMAKE_SOURCE_DIR}/src/*.cpp"
+#        "${CMAKE_SOURCE_DIR}/src/*.c"
+#)
+#
+#add_executable(kiramitm ${SRC_FILES})
+#
+#find_package(OpenSSL REQUIRED)
+#find_package(asio CONFIG REQUIRED)
+#find_package(spdlog CONFIG REQUIRED)
+#find_package(argparse CONFIG REQUIRED)
+#
+#if (UNIX)
+#    target_link_libraries(kiramitm PRIVATE pthread)
+#endif ()
+#
+#target_link_libraries(kiramitm PRIVATE
+#        asio::asio
+#        spdlog::spdlog
+#        OpenSSL::SSL
+#        argparse::argparse
+#)
 
-file(GLOB_RECURSE SRC_FILES
-        "${CMAKE_SOURCE_DIR}/src/*.cpp"
-        "${CMAKE_SOURCE_DIR}/src/*.c"
-)
-
-add_executable(kiramitm ${SRC_FILES})
-
-find_package(OpenSSL REQUIRED)
-find_package(asio CONFIG REQUIRED)
-find_package(spdlog CONFIG REQUIRED)
-
-if (UNIX)
-    target_link_libraries(kiramitm PRIVATE pthread)
-endif ()
-
-target_link_libraries(kiramitm PRIVATE
-        asio::asio
-        spdlog::spdlog
-        OpenSSL::SSL
-)
+add_subdirectory(kmp-common)
+add_subdirectory(kmp-core)
+add_subdirectory(samples)
