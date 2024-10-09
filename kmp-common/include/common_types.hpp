@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+
 namespace kmp {
 
     class NonCopy {
